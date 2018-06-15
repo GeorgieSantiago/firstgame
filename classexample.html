@@ -1,0 +1,90 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Making your first Phaser 3 Game - Part 1</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.1.1/dist/phaser.js"></script>
+    <script src="Main.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+    /*
+	Full working example of Phaser	
+    */
+//This config object
+    var config = {
+	//Attempts webGL if it fails fallback to canvas
+        type: Phaser.AUTO,
+	//Game window width
+        width: 800,
+	//Game window height
+        height: 600,
+	//loads up this scene
+	//Probably turn this into an array of objects that can be sequenced
+	//You can import these methods through a PHASER.Scene class
+	//I am not going to do it here but ill do it in a different one :D
+        scene: {[
+		Main	
+        ]}
+    };
+    //Create an instance of the Game with Config object
+    var game = new Phaser.Game(config);
+
+    /*
+	This sets up all game assets	
+    */
+    function preload ()
+    {
+	    //Load these images with a pseudo name and full name
+	    this.load.image('sky','assets/sky.png');
+	    this.load.image('ground','assets/platform.png');
+            this.load.image('star','assets/star.png');
+            this.load.image('bomb','assets/bomb.png');
+	    //Load a spritesheet this one takes a pseudo name then the source then you can set how the sprites are cut
+	    //This example each sprite is 32x48
+	    this.load.spritesheet('dude' , 'assets/dude.png', {
+	    	frameWidth: 32, 
+		frameHeight: 48
+	    });
+    }
+
+    function create ()
+    {
+	    //Add an image we loaded earlier and display it ass the background
+	    this.add.image(400,300,'sky');
+	    //Proof of concept that I can render an amount of an image with a loop
+	    for(let n=0;n < 10;n++) {
+		//Get a random number between 0 - What ever its being multiplied by :D
+		let x = Math.random(800);
+		//Get a random number between 0 - 600
+		let y = Math.random(0,600);
+		console.log(x,y);
+
+	    	this.add.image(x * 800 , y * 600 , 'star');
+	    }
+	    this.add.image(400,300,'star');
+
+	    //wtf is this?
+	    platforms = this.physics.add.staticGroup();
+
+	    platform.create(400 , 568 , 'ground').setScale(2).refreshBody();
+
+	    platforms.create(600, 400, 'ground');
+            platforms.create(50, 250, 'ground');
+            platforms.create(750, 220, 'ground');
+    }
+
+    function update ()
+    {
+    }
+
+</script>
+
+</body>
+</html>

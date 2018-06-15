@@ -1,0 +1,240 @@
+<!doctype html> 
+<html lang="en"> 
+	<head> 
+		<meta charset="UTF-8" />
+		<title>Making your first Phaser 3 Game - Part 1</title>
+		<script src="//cdn.jsdelivr.net/npm/phaser@3.1.1/dist/phaser.js"></script>
+		<style type="text/css">
+body {
+	margin: 0;
+}
+		</style>
+	</head>
+	<body>
+
+		<script type="text/javascript">
+			/*
+			Full working example of Phaser	
+			 */
+//This config object
+var config = {
+	//Attempts webGL if it fails fallback to canvas
+	type: Phaser.AUTO,
+	//Game window width
+	width: 800,
+	//Game window height
+	height: 600,
+	//loads up this scene
+	//Probably turn this into an array of objects that can be sequenced
+	//You can import these methods through a PHASER.Scene class
+	//I am not going to do it here but ill do it in a different one :D
+	//This is for the physics package
+	physics: {
+		default: 'arcade',
+		arcade: {
+			gravity: {y:300},
+			debug: false
+		}
+	},
+	scene: {
+		preload: preload,
+		create: create,
+		update: update
+	}
+};
+
+
+var score=0;
+let scoreText;
+let bombs;
+
+
+//Create an instance of the Game with Config object
+var game = new Phaser.Game(config);
+/*
+	This sets up all game assets	
+ */
+function preload ()
+{
+	//Load these images with a pseudo name and full name
+	this.load.image('sky','assets/sky.png');
+	this.load.image('ground','assets/platform.png');
+	this.load.image('star','assets/star.png');
+	this.load.image('bomb','assets/bomb.png');
+	//Load a spritesheet this one takes a pseudo name then the source then you can set how the sprites are cut
+	//This example each sprite is 32x48
+	this.load.spritesheet('dude' , 'assets/dude.png', {
+		frameWidth: 32, 
+		frameHeight: 48
+	});
+}
+
+function create ()
+{
+
+	score = 0;
+	scoreText = this.add.text(16,16,'score: 0', {fontSize: '32px',fill: 'black'});
+
+	//Add an image we loaded earlier and display it ass the background
+	this.add.image(400,300,'sky');
+	//Proof of concept that I can render an amount of an image with a loop
+	/*for(let n=0;n < 10;n++) {
+	//Get a random number between 0 - What ever its being multiplied by :D
+		let x = Math.random(800);
+		//Get a random number between 0 - 600
+		let y = Math.random(0,600);
+		console.log(x,y);
+
+		this.add.image(x * 800 , y * 600 , 'star');
+	    }
+	    this.add.image(400,300,'star');
+	 */
+
+		//Here is the right way to do the above
+		stars = this.physics.add.group({
+			key: 'star',
+			repeat: 11,
+			setXY: {x:12,y:0,stepX:70}
+		});
+
+	stars.children.iterate(function(child){
+		child.setBounceY(Phaser.Math.FloatBetween(0.4,0.8));
+	})
+
+
+	bombs = this.physics.add.group();
+
+
+
+	//wtf is this?
+	//Okay I know what this is now. So there are to types of groups Dynamic and static
+	//Dynamic groups are affected by gravity and what not
+	//Static ones arent. So its perfect for the platforms because the static groups dont get
+	//pulled towards the gravity point
+	platform = this.physics.add.staticGroup();
+
+	//Create and update the main ground
+	platform.create(400 , 568 , 'ground').setScale(2).refreshBody();
+	//Add more platforms
+	platform.create(600, 400, 'ground');
+	platform.create(50, 250, 'ground');
+	platform.create(750, 220, 'ground');
+
+	//Now we add our player sprite. First we call the sprite sheet by its name
+	player = this.physics.add.sprite(100,450,'dude');
+
+	//Something about bounce I am not sure
+	player.setBounce(0.2);
+	//This makes it so the player cant leave the bounds of the game camara 
+	player.setCollideWorldBounds(true);
+
+	//Create some animation bro!
+	//first off we get the left ones
+	this.anims.create({
+		//Set the key
+		key:'left',
+		//choose the frames
+		//the start and end are from the Array[0-3]
+		frames: this.anims.generateFrameNumbers('dude' , {start:0,end:3}),
+		//Set the framerate
+		frameRate:10,
+		repeat: -1
+	});
+
+	//This uses the frame in the Array[4] as the transition between left and right
+	this.anims.create({
+		key: 'turn',
+		frames: [{key: 'dude',frame:4}],
+		frameRate:20
+	});
+
+	this.anims.create({
+		key: 'right',
+		frames: this.anims.generateFrameNumbers('dude',{start:5,end:8}),
+		frameRate:10,
+		repeat: -1
+	});
+
+	player.body.setGravityY(300);
+
+	/*checks for collision between objects*/
+	this.physics.add.collider(player,platform);
+	this.physics.add.collider(stars,platform);
+	this.physics.add.collider(bombs,platform)
+	/*Event listener for collecting the stars*/
+	//Player Object Stars collection, Callback, some setting, super()
+	this.physics.add.overlap(player,stars,collectStar,null,this);
+
+	this.physics.add.collider(bombs,platform)
+	this.physics.add.collider(player,bombs,hitBomb,null,this);
+
+}
+
+function hitBomb() {
+	this.physics.pause();	
+	player.setTint('i0xff0000');
+	player.anims.play('turn');
+	gameOver=true;
+}
+
+let counter = 1;
+function collectStar(player,star) {
+	star.disableBody(true,true);
+
+	score += 10;
+	console.log(score);
+	scoreText.setText('Score: ' + score);
+
+	if(stars.countActive(true) === 0) {
+		stars.children.iterate(function(child){
+			child.enableBody(true,child.x,0,true,true);
+		});
+
+		var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+		let count = 1;
+		for(let n = 0;n < 3;n++) {
+		var bomb = bombs.create(x, 16, 'bomb');
+		bomb.setBounce(1);
+		bomb.setCollideWorldBounds(true);
+		bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+		bomb.allowGravity = false;
+		}
+	}
+}
+
+function update ()
+{
+
+	/*
+		Now we are going to set up some controlls
+	 */
+
+	cursors = this.input.keyboard.createCursorKeys();
+	if(cursors.left.isDown) {
+		player.setVelocityX(-360);
+
+		player.anims.play('left' , true);
+	} else if(cursors.right.isDown) {
+		player.setVelocityX(360);
+
+		player.anims.play('right' , true);
+	} else {
+		player.setVelocityX(0);
+
+		player.anims.play('turn');
+	}
+
+	if(cursors.up.isDown && player.body.touching.down) {
+		player.setVelocityY(-550);
+	}
+
+	if(cursors.down.isDown) {
+		player.setVelocityY(400);
+	}
+
+}
+
+		</script>
+
+	</body>
+</html>
